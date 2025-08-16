@@ -3,17 +3,28 @@ import AsyncAlgorithms
 
 public struct Herschel {
     
-    public protocol Messagable: Sendable {
-        
-    }
+    public protocol Messagable: Sendable { }
     
     /// Provides an interface for sending and receiving abstract messages asynchronously
     ///
     /// Support multiple subscribers who might only care about subset of events
     /// Events can be received in a SwiftUI callback, or through a Messenger class
     public actor MessageCenter<MessageType: Messagable> {
-        public func send(event: MessageType) {
-            unimplemented()
+        var messages: AsyncChannel<MessageType> = .init()
+        var subscribers: [Subscriber<MessageType>] = .init()
+        
+        var listening: Task<Void, Never>? = nil
+        
+        private init() {}
+        
+        public static func begin() async -> MessageCenter<MessageType> {
+            let newMessageCenter = self.init()
+            await newMessageCenter.startListening()
+            return newMessageCenter
+        }
+        
+        public func send(message: MessageType) async {
+            await messages.send(message)
         }
         
         public func onReceive(
@@ -26,7 +37,32 @@ public struct Herschel {
             when predicate: @escaping (MessageType) -> Bool,
             perform instruction: @escaping (MessageType) -> ()
         ) {
-            unimplemented()
+            subscribers.append(.init(predicate, instruction))
+        }
+        
+        func startListening() {
+            self.listening = Task { [unowned self] in
+                for await message in self.messages {
+                    for subscriber in self.subscribers {
+                        subscriber.receive(message: message)
+                    }
+                }
+            }
+        }
+    }
+    
+    class Subscriber<MessageType: Messagable> {
+        private let predicate: (MessageType) -> Bool
+        private let instruction: (MessageType) -> ()
+        
+        init(_ predicate: @escaping (MessageType) -> Bool, _ instruction: @escaping (MessageType) -> Void) {
+            self.predicate = predicate
+            self.instruction = instruction
+        }
+        
+        func receive(message: MessageType) {
+            guard predicate(message) else { return }
+            instruction(message)
         }
     }
 }
@@ -59,8 +95,4 @@ extension View {
         Task { await messageCenter.onReceive(when: predicate, perform: instruction) }
         return self
     }
-}
-
-func unimplemented(message: String = "", file: StaticString = #file, line: UInt = #line) {
-    fatalError("unimplemented: \(message)", file: file, line: line)
 }
