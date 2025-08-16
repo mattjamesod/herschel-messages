@@ -49,6 +49,10 @@ public struct Herschel {
                 }
             }
         }
+        
+        func cancel() {
+            unimplemented()
+        }
     }
     
     class Subscriber<MessageType: Messagable> {
@@ -95,4 +99,8 @@ extension View {
         Task { await messageCenter.onReceive(when: predicate, perform: instruction) }
         return self
     }
+}
+
+func unimplemented(message: String = "", file: StaticString = #file, line: UInt = #line) {
+    fatalError("unimplemented: \(message)", file: file, line: line)
 }
