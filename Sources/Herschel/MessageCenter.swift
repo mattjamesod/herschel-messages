@@ -53,8 +53,9 @@ extension Herschel {
             }
         }
         
-        public func cancel() {
-            unimplemented()
+        public func cancel(_ subscriberID: SubscriberID) {
+            guard let index = subscribers.firstIndex(where: { $0.id == subscriberID }) else { return }
+            subscribers.remove(at: index)
         }
     }
 }

@@ -61,6 +61,20 @@ struct MessageCenterTests {
         #expect(data == 1)
     }
     
+    @Test func noLongerReceiveCallbacksAfterCancelling() async {
+        var data = 0
+        
+        let subscriptionID = await messageCenter.onReceive { _ in
+            data = 1
+        }
+        
+        await messageCenter.cancel(subscriptionID)
+        await messageCenter.send(message: .hello())
+        await confirmation()
+        
+        #expect(data == 0)
+    }
+    
     private func confirmation() async {
         // this is a bad hack, because the expecations are a race condition
         // trying to call messages.finish on the message center is a seg fault,
