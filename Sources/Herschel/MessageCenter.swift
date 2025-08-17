@@ -26,17 +26,21 @@ extension Herschel {
             await messages.send(message)
         }
         
+        @discardableResult
         public func onReceive(
             perform instruction: @escaping (MessageType) -> ()
-        ) {
+        ) -> SubscriberID {
             onReceive(when: { _ in true }, perform: instruction)
         }
         
+        @discardableResult
         public func onReceive(
             when predicate: @escaping (MessageType) -> Bool,
             perform instruction: @escaping (MessageType) -> ()
-        ) {
-            subscribers.append(.init(predicate, instruction))
+        ) -> SubscriberID {
+            let subscriber = Subscriber(predicate, instruction)
+            subscribers.append(subscriber)
+            return subscriber.id
         }
         
         func startListening() {
