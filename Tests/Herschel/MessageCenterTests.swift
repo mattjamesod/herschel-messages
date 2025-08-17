@@ -1,5 +1,4 @@
 import Testing
-import SwiftUI
 @testable import HerschelMessages
 
 struct MessageCenterTests {
