@@ -10,16 +10,18 @@ public struct Herschel {
     /// Support multiple subscribers who might only care about subset of events
     /// Events can be received in a SwiftUI callback, or through a Messenger class
     public actor MessageCenter<MessageType: Messagable> {
-        var messages: AsyncChannel<MessageType> = .init()
-        var subscribers: [Subscriber<MessageType>] = .init()
+        private var messages: AsyncChannel<MessageType> = .init()
+        private var subscribers: [Subscriber<MessageType>] = .init()
         
-        var listening: Task<Void, Never>? = nil
+        private var listening: Task<Void, Never>? = nil
         
         private init() {}
         
-        public static func begin() async -> MessageCenter<MessageType> {
+        public static func begin() -> MessageCenter<MessageType> {
             let newMessageCenter = self.init()
-            await newMessageCenter.startListening()
+            Task {
+                await newMessageCenter.startListening()
+            }
             return newMessageCenter
         }
         
@@ -50,7 +52,7 @@ public struct Herschel {
             }
         }
         
-        func cancel() {
+        public func cancel() {
             unimplemented()
         }
     }
@@ -74,9 +76,9 @@ public struct Herschel {
 extension Herschel.MessageCenter where MessageType: Equatable {
     public func onReceive(
         event: MessageType,
-        perform instruction: @escaping (MessageType) -> ()
+        perform instruction: @escaping () -> ()
     ) {
-        onReceive(when: { $0.self == event }, perform: instruction)
+        onReceive(when: { $0.self == event }, perform: { _ in instruction() })
     }
 }
 

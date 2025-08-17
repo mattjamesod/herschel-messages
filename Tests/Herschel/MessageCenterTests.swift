@@ -1,34 +1,71 @@
 import Testing
+import SwiftUI
 @testable import HerschelMessages
 
 struct MessageCenterTests {
-    @Suite struct SendTests {
-        @Test func callsOnReceive() {
-            
+    let messageCenter = Herschel.MessageCenter<TestMessage>.testInstance
+    
+    @Test func multipleCallbacksAreTriggered() async {
+        var data = 0
+        var string = "World"
+        var bool = false
+        
+        await messageCenter.onReceive(event: .hello()) {
+            data = 1
         }
+        
+        await messageCenter.onReceive(event: .hello()) {
+            string = "Hello"
+        }
+        
+        await messageCenter.onReceive(event: .hello()) {
+            bool = true
+        }
+        
+        await messageCenter.send(message: .hello())
+        await confirmation()
+        
+        #expect(data == 1)
+        #expect(string == "Hello")
+        #expect(bool)
     }
     
-    @Suite struct OnReceiveTests {
-        @Test func allCallbacks() {
-            
+    @Test func universalCallbacksTriggerForAnyEvent() async {
+        var data = ""
+        
+        await messageCenter.onReceive { event in
+            data += event.content
         }
         
-        @Test func remainsOpen() {
-            
-        }
+        await messageCenter.send(message: .hello("greetings"))
+        await messageCenter.send(message: .goodbye("farewells"))
+        await confirmation()
         
-        @Test func specificEvent() {
-            
-        }
-        
-        @Test func matchingPredicate() {
-            
-        }
+        #expect(data == "greetingsfarewells")
     }
     
-    @Suite struct SwiftUIExtensionTests {
-        @Test func callsOnReceive() {
-            
+    @Test func predicatesAreRespected() async {
+        var data = 0
+        
+        await messageCenter.onReceive(when: { $0.content == "privet" }) { event in
+            data = 1
         }
+        
+        await messageCenter.send(message: .hello("greetings"))
+        await confirmation()
+        
+        #expect(data == 0)
+        
+        await messageCenter.send(message: .hello("privet"))
+        await confirmation()
+        
+        #expect(data == 1)
+    }
+    
+    private func confirmation() async {
+        // this is a bad hack, because the expecations are a race condition
+        // trying to call messages.finish on the message center is a seg fault,
+        // for no reason I can determine
+        try? await Task.sleep(for: .milliseconds(1))
     }
 }
